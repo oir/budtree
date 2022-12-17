@@ -98,6 +98,7 @@ class Node:
 
 if __name__ == "__main__":
     import numpy as np
+    from torch import nn
 
     import pickle
     import sys
@@ -106,10 +107,20 @@ if __name__ == "__main__":
     tst = np.loadtxt(sys.argv[2], delimiter=",")
 
     bs = 64
-    n = Node(784, 10)
-    loss = torch.nn.CrossEntropyLoss(reduction="mean")
+    n = Node(512, 10)
+    pre = model = nn.Sequential(
+        nn.Conv2d(1,64,5),
+        nn.ReLU(),
+        nn.MaxPool2d(3, 2),
+        nn.Conv2d(64,32,3),
+        nn.ReLU(),
+        nn.MaxPool2d(3, 2),
+    )
 
-    def run_epoch(tree: Node, data, train: bool):
+    loss = torch.nn.CrossEntropyLoss(reduction="mean")
+    pre_optim = torch.optim.SGD(pre.parameters(), lr = n._lr)
+
+    def run_epoch(pre_tree: nn.Module, tree: Node, data, train: bool):
         N = (np.shape(data)[0] + bs - 1) // bs
         perm = np.random.permutation(N) if train else range(N)
         total_loss = 0.0
@@ -125,7 +136,11 @@ if __name__ == "__main__":
             y = torch.tensor(data[start:end, 0], dtype=torch.long)
             x = torch.tensor(data[start:end, 1:] / 255.0, dtype=torch.float)
 
-            logit = tree.forward(x)
+            x = x.view([bs_, 28, 28]).unsqueeze(1)
+            h = pre_tree.forward(x)
+            h = h.view([bs_, -1])
+
+            logit = tree.forward(h)
             l = loss(logit, y)
 
             total_correct += (torch.argmax(logit, dim=1) == y).sum().item()
@@ -133,29 +148,31 @@ if __name__ == "__main__":
             total += bs_
 
             if train:
+                pre_optim.zero_grad()
+                tree.reset_grad()
                 l.backward()
                 tree.update()
-                tree.reset_grad()
+                pre_optim.step()
 
         return total_loss / total, 1.0 - total_correct / total
 
-    epochs = 10
+    epochs = 20
 
     for e in range(epochs):
-        l, err = run_epoch(n, tra, train=True)
-        lt, errt = run_epoch(n, tst, train=False)
+        l, err = run_epoch(pre, n, tra, train=True)
+        lt, errt = run_epoch(pre, n, tst, train=False)
 
         print(f"{l:.2f}  {err*100:>5.2f}  {lt:.2f}  {errt*100:>5.2f}  {n.size()}")
 
     model = open("tmp.model", "wb")
-    pickle.dump(n, model)
+    pickle.dump((pre, n), model)
     model.close()
 
     model = open("tmp.model", "rb")
-    n2 = pickle.load(model)
+    pre2, n2 = pickle.load(model)
     model.close()
 
-    l, err = run_epoch(n2, tra, train=False)
-    lt, errt = run_epoch(n2, tst, train=False)
+    l, err = run_epoch(pre2, n2, tra, train=False)
+    lt, errt = run_epoch(pre2, n2, tst, train=False)
 
     print(f"{l:.2f}  {err*100:>5.2f}  {lt:.2f}  {errt*100:>5.2f}  {n.size()}")
