@@ -85,8 +85,7 @@ class Node:
         self._update_param(self.leafness)
         self._update_param(self.response)
 
-        if self.leafness.data.item() > 1:
-            self.leafness.data = torch.ones([])
+        self.leafness.data = torch.clamp(self.leafness.data, min=0.0, max=1.0)
 
         if not self.leaf():
             self.left.update()
@@ -109,16 +108,16 @@ if __name__ == "__main__":
     bs = 64
     n = Node(512, 10)
     pre = model = nn.Sequential(
-        nn.Conv2d(1,64,5),
+        nn.Conv2d(1, 64, 5),
         nn.ReLU(),
         nn.MaxPool2d(3, 2),
-        nn.Conv2d(64,32,3),
+        nn.Conv2d(64, 32, 3),
         nn.ReLU(),
         nn.MaxPool2d(3, 2),
     )
 
     loss = torch.nn.CrossEntropyLoss(reduction="mean")
-    pre_optim = torch.optim.SGD(pre.parameters(), lr = n._lr)
+    pre_optim = torch.optim.SGD(pre.parameters(), lr=n._lr)
 
     def run_epoch(pre_tree: nn.Module, tree: Node, data, train: bool):
         N = (np.shape(data)[0] + bs - 1) // bs
