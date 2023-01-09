@@ -26,7 +26,7 @@ class Hmoe(nn.Module):
         running_gating = torch.ones([bs, 1])
 
         for i in range(1, self.depth):
-            parents = gate[:, (2 ** (i - 1) - 1) : (2**i - 1)]
+            parents = gate[:, (2 ** (i - 1) - 1) : (2 ** i - 1)]
             left = parents * running_gating
             right = (1.0 - parents) * running_gating
             # instead of concatenating children as [llllrrrr], we need to
@@ -40,7 +40,6 @@ class Hmoe(nn.Module):
 
 if __name__ == "__main__":
     import numpy as np
-    from torch import nn
 
     import pickle
     import sys
