@@ -7,9 +7,16 @@ import typer
 
 import pickle
 import sys
+from enum import Enum
 
 TRAIN_URL = "https://pjreddie.com/media/files/mnist_train.csv"
 TEST_URL = "https://pjreddie.com/media/files/mnist_test.csv"
+
+
+class Device(str, Enum):
+    auto = "auto"
+    cpu = "cpu"
+    gpu = "gpu"
 
 
 def architecture() -> nn.Module:
@@ -25,14 +32,23 @@ def architecture() -> nn.Module:
     )
 
 
-def main(epochs: int = 10, batch_size: int = 64):
+def main(epochs: int = 10, batch_size: int = 64, device: Device = Device.auto):
+    dev = (
+        "cuda:0"
+        if (
+            device == Device.gpu
+            or (device == Device.auto and torch.cuda.is_available())
+        )
+        else "cpu"
+    )
+
     tra_fname = ensure_file("mnist_train.csv", TRAIN_URL)
     tst_fname = ensure_file("mnist_test.csv", TEST_URL)
 
     tra = np.loadtxt(tra_fname, delimiter=",")
     tst = np.loadtxt(tst_fname, delimiter=",")
 
-    model = architecture()
+    model = architecture().to(dev)
     loss = torch.nn.CrossEntropyLoss(reduction="mean")
     opt = torch.optim.Adam(model.parameters(), lr=1e-3)
 
@@ -49,8 +65,8 @@ def main(epochs: int = 10, batch_size: int = 64):
             batch_size_ = min(batch_size, np.shape(data)[0] - start)
             end = start + batch_size_
 
-            y = torch.tensor(data[start:end, 0], dtype=torch.long)
-            x = torch.tensor(data[start:end, 1:] / 255.0, dtype=torch.float)
+            y = torch.tensor(data[start:end, 0], dtype=torch.long).to(dev)
+            x = torch.tensor(data[start:end, 1:] / 255.0, dtype=torch.float).to(dev)
 
             # instead of a bs x 784 shape or flat vectors, we need bs x 28 x 28
             # of 2D images. we also need a "number of channels" of 1, which is

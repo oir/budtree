@@ -23,7 +23,7 @@ class Hmoe(nn.Module):
         bs = x.size()[0]
 
         gate = torch.sigmoid(torch.matmul(x, self.w) + self.b)
-        running_gating = torch.ones([bs, 1])
+        running_gating = torch.ones([bs, 1], device=x.device)
 
         for i in range(1, self.depth):
             parents = gate[:, (2 ** (i - 1) - 1) : (2**i - 1)]
