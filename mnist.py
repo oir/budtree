@@ -32,7 +32,12 @@ def architecture() -> nn.Module:
     )
 
 
-def main(epochs: int = 10, batch_size: int = 64, device: Device = Device.auto):
+def main(
+    epochs: int = 10,
+    batch_size: int = 64,
+    learning_rate: float = 1e-3,
+    device: Device = Device.auto,
+):
     dev = (
         "cuda:0"
         if (
@@ -50,7 +55,7 @@ def main(epochs: int = 10, batch_size: int = 64, device: Device = Device.auto):
 
     model = architecture().to(dev)
     loss = torch.nn.CrossEntropyLoss(reduction="mean")
-    opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+    opt = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     def run_epoch(model: nn.Module, data, train: bool):
         N = (np.shape(data)[0] + batch_size - 1) // batch_size
