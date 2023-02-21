@@ -8,6 +8,7 @@ from torch import nn
 
 from hmoe import Hmoe
 
+
 def read_celeba(
     folder: str, partition: Dict[str, int], counts: List[int]
 ) -> np.ndarray:
@@ -39,13 +40,14 @@ def read_partition(fname: str) -> Dict[str, int]:
 
     return d, counts
 
+
 def read_labels(fname: str, partition: Dict[str, int]) -> np.ndarray:
     labels = [[], [], []]
 
     with open(fname) as f:
-        names = f.readline().strip().split(',')[1:]
+        names = f.readline().strip().split(",")[1:]
         for line in f:
-            items = line.strip().split(',')
+            items = line.strip().split(",")
             fname = items[0]
             vals = [int(int(x) > 0) for x in items[1:]]
             part = partition[fname]
@@ -107,7 +109,7 @@ if __name__ == "__main__":
             logit = model.forward(x)
             l = loss(logit, y)
 
-            total_correct += ((logit > 0.) == y).sum().item()
+            total_correct += ((logit > 0.0) == y).sum().item()
             total_loss += l.item() * bs_
             total += bs_
 
